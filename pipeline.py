@@ -123,8 +123,8 @@ class Pipeline:
         self.generate_block_seqs(self.dev_file_path, 'dev')
         self.generate_block_seqs(self.test_file_path, 'test')
 
-
-ppl = Pipeline('3:1:1', 'data/')
-ppl.run()
+if __name__ == '__main__':
+    ppl = Pipeline('3:1:1', 'data/')
+    ppl.run()
 
 

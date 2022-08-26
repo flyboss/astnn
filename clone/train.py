@@ -8,8 +8,8 @@ from model import BatchProgramCC
 from torch.autograd import Variable
 from sklearn.metrics import precision_recall_fscore_support
 warnings.filterwarnings('ignore')
-
-
+from tqdm import tqdm
+import os
 
 def get_batch(dataset, idx, bs):
     tmp = dataset.iloc[idx: idx+bs]
@@ -51,6 +51,7 @@ if __name__ == '__main__':
     EPOCHS = 5
     BATCH_SIZE = 32
     USE_GPU = True
+    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
     model = BatchProgramCC(EMBEDDING_DIM,HIDDEN_DIM,MAX_TOKENS+1,ENCODE_DIM,LABELS,BATCH_SIZE,
                                    USE_GPU, embeddings)
@@ -74,7 +75,7 @@ if __name__ == '__main__':
         else:
             train_data_t, test_data_t = train_data, test_data
         # training procedure
-        for epoch in range(EPOCHS):
+        for epoch in tqdm(range(EPOCHS)):
             start_time = time.time()
             # training epoch
             total_acc = 0.0
@@ -96,40 +97,44 @@ if __name__ == '__main__':
                 loss = loss_function(output, Variable(train_labels))
                 loss.backward()
                 optimizer.step()
-        print("Testing-%d..."%t)
-        # testing procedure
-        predicts = []
-        trues = []
-        total_loss = 0.0
-        total = 0.0
-        i = 0
-        while i < len(test_data_t):
-            batch = get_batch(test_data_t, i, BATCH_SIZE)
-            i += BATCH_SIZE
-            test1_inputs, test2_inputs, test_labels = batch
-            if USE_GPU:
-                test_labels = test_labels.cuda()
+        print('save model')
+        torch.save(model.state_dict(), './astnn_weights.pth')
 
-            model.batch_size = len(test_labels)
-            model.hidden = model.init_hidden()
-            output = model(test1_inputs, test2_inputs)
-
-            loss = loss_function(output, Variable(test_labels))
-
-            # calc testing acc
-            predicted = (output.data > 0.5).cpu().numpy()
-            predicts.extend(predicted)
-            trues.extend(test_labels.cpu().numpy())
-            total += len(test_labels)
-            total_loss += loss.item() * len(test_labels)
-        if lang == 'java':
-            weights = [0, 0.005, 0.001, 0.002, 0.010, 0.982]
-            p, r, f, _ = precision_recall_fscore_support(trues, predicts, average='binary')
-            precision += weights[t] * p
-            recall += weights[t] * r
-            f1 += weights[t] * f
-            print("Type-" + str(t) + ": " + str(p) + " " + str(r) + " " + str(f))
-        else:
-            precision, recall, f1, _ = precision_recall_fscore_support(trues, predicts, average='binary')
-
-    print("Total testing results(P,R,F1):%.3f, %.3f, %.3f" % (precision, recall, f1))
+    #     print("Testing-%d..."%t)
+    #     # testing procedure
+    #     predicts = []
+    #     trues = []
+    #     total_loss = 0.0
+    #     total = 0.0
+    #     i = 0
+    #     while i < len(test_data_t):
+    #         batch = get_batch(test_data_t, i, BATCH_SIZE)
+    #         i += BATCH_SIZE
+    #         test1_inputs, test2_inputs, test_labels = batch
+    #         if USE_GPU:
+    #             test_labels = test_labels.cuda()
+    #
+    #         model.batch_size = len(test_labels)
+    #         model.hidden = model.init_hidden()
+    #         output = model(test1_inputs, test2_inputs)
+    #
+    #         loss = loss_function(output, Variable(test_labels))
+    #
+    #         # calc testing acc
+    #         predicted = (output.data > 0.5).cpu().numpy()
+    #         predicts.extend(predicted)
+    #         trues.extend(test_labels.cpu().numpy())
+    #         total += len(test_labels)
+    #         total_loss += loss.item() * len(test_labels)
+    #     if lang == 'java':
+    #         weights = [0, 0.005, 0.001, 0.002, 0.010, 0.982]
+    #         p, r, f, _ = precision_recall_fscore_support(trues, predicts, average='binary')
+    #         precision += weights[t] * p
+    #         recall += weights[t] * r
+    #         f1 += weights[t] * f
+    #         print("Type-" + str(t) + ": " + str(p) + " " + str(r) + " " + str(f))
+    #     else:
+    #         precision, recall, f1, _ = precision_recall_fscore_support(trues, predicts, average='binary')
+    #
+    #
+    # print("Total testing results(P,R,F1):%.3f, %.3f, %.3f" % (precision, recall, f1))
